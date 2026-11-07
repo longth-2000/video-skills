@@ -1,0 +1,44 @@
+{
+  "name": "hau-loc",
+  "title": "Hậu Lộc — vùng đất bên biển xứ Thanh",
+  "format": {
+    "width": 1080,
+    "height": 1920,
+    "fps": 24,
+    "bpm": 120
+  },
+  "storyFormat": "F5 fixed-stage journey (the map is the stage, the orange outline the constant)",
+  "style": "geosat",
+  "voice": {
+    "file": "voice/voice.wav",
+    "music": -12
+  },
+  "build": [
+    "src/head.html",
+    "kit/core.js",
+    "src/geodata.js",
+    "src/geodata2.js",
+    "style",
+    "styles/geosat/overlay.js",
+    "src/scenes.js",
+    "src/fx.js",
+    "src/sec-geo.js",
+    "src/sec-his.js",
+    "src/sec-cul.js",
+    "src/sec-new.js",
+    "src/bridges.js",
+    "kit/morph.js",
+    "kit/board.js",
+    "kit/score-head.js",
+    "src/score.js",
+    "kit/score-tail.js"
+  ],
+  "review": {
+    "safe": {
+      "top": 240,
+      "bottom": 420,
+      "right": 140
+    },
+    "refs": {}
+  }
+}

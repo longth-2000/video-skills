@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>__TITLE__</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #05080b; overflow: hidden; }
+  body { display: flex; align-items: center; justify-content: center; }
+  canvas { max-width: 100vw; max-height: 100vh; width: auto; height: auto; display: block; cursor: pointer; }
+</style>
+</head>
+<body>
+<canvas id="c" width="1080" height="1920"></canvas>
+<script>
+"use strict";
+// =====================================================================
+//  __TITLE__ — geo-explainer piece. The voice is the clock: cue everything from VOICE (voice.json).
+//  Shots and their times: src/shots.js. Scenes: src/scenes.js. Effects: fx/ (references/effects.md).
+// =====================================================================
+const FORMATS = { '9:16': [1080, 1920], '16:9': [1920, 1080] };
+const FORMAT = FORMATS[new URLSearchParams(location.search).get('format')] ? new URLSearchParams(location.search).get('format') : '9:16';
+const FPS = 24, [W, H] = FORMATS[FORMAT];
+{ const cv = document.getElementById('c'); cv.width = W; cv.height = H; }
+const BPM = 120, GRID0 = 0, BEAT = 60 / BPM, E8 = BEAT / 2, E16 = BEAT / 4;
+const SAFE = FORMAT === '9:16' ? { top: 240, bottom: 420, right: 140 } : { top: 80, bottom: 160, right: 80 };
+const HAND = 'system-ui, -apple-system, "Segoe UI", Arial, sans-serif';   // system-ui = SF Pro on macOS (full Vietnamese)
+const CX = (W - SAFE.right) / 2;
+const onBeat = (t) => +(Math.round(t / E8) * E8).toFixed(4);
+const VLINES = Object.fromEntries(VOICE.lines.map((l) => [l.id, l]));
+const VL = (id) => VLINES[id];
+const VW = (id, f) => { const l = VLINES[id]; return l.t0 + (l.t1 - l.t0) * f; };
+const T0 = (id) => VL(id).t0, T1 = (id) => VL(id).t1;
+const DURATION = Math.ceil(VOICE.duration * 2) / 2;
+const NFRAMES = Math.round(DURATION * FPS);
+const LOOP_T = NFRAMES / FPS;
+const SUBTITLES = true;   // burnt-in subtitles from the voice's words (fx.js fxSubtitle)

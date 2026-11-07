@@ -1,0 +1,46 @@
+{
+  "name": "__SLUG__",
+  "title": "__TITLE__",
+  "format": {
+    "width": 1080,
+    "height": 1920,
+    "fps": 24,
+    "bpm": 120
+  },
+  "style": "geosat",
+  "voice": {
+    "file": "voice/voice.wav",
+    "music": -12
+  },
+  "build": [
+    "src/head.html",
+    "kit/core.js",
+    "src/geodata.js",
+    "src/geodata2.js",
+    "style",
+    "styles/geosat/overlay.js",
+    "fx/fx.js",
+    "fx/fx-geo.js",
+    "fx/fx-geo2.js",
+    "fx/fx-photo.js",
+    "fx/fx-video.js",
+    "fx/fx-story.js",
+    "fx/fx-intro.js",
+    "src/scenes.js",
+    "src/shots.js",
+    "fx/transitions.js",
+    "kit/morph.js",
+    "kit/board.js",
+    "kit/score-head.js",
+    "src/score.js",
+    "kit/score-tail.js"
+  ],
+  "review": {
+    "safe": {
+      "top": 240,
+      "bottom": 420,
+      "right": 140
+    },
+    "refs": {}
+  }
+}

@@ -1,0 +1,4 @@
+.DS_Store
+node_modules/
+*.log
+skills/geo-explainer/assets/refs/

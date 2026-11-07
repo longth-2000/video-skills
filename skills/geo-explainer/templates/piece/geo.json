@@ -1,0 +1,7 @@
+{
+  "country": "VNM",
+  "province": "__PROVINCE__",
+  "focus": { "level": 2, "name": "__FOCUS__" },
+  "simplify_m": 140,
+  "osm": true
+}

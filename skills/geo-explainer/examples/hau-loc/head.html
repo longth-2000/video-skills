@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hậu Lộc — vùng đất bên biển xứ Thanh</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #05080b; overflow: hidden; }
+  body { display: flex; align-items: center; justify-content: center; }
+  canvas { max-width: 100vw; max-height: 100vh; width: auto; height: auto; display: block; cursor: pointer; }
+</style>
+</head>
+<body>
+<canvas id="c" width="1080" height="1920"></canvas>
+<script>
+"use strict";
+// =====================================================================
+//  HẬU LỘC — a ~2 minute geography / history / culture map explainer, 9:16, 24fps, voice-over.
+//  One continuous satellite-style map world (km coordinates, see src/geodata.js); every shot is the same
+//  world under a different camera with its own overlays, so the shot changes read as camera moves.
+//  The voice is the clock: every cue below comes from VOICE (voice.json, tools/voice.mjs).
+// =====================================================================
+const FORMATS = { '9:16': [1080, 1920] };
+const FORMAT = '9:16';
+const FPS = 24, [W, H] = FORMATS[FORMAT];
+{ const cv = document.getElementById('c'); cv.width = W; cv.height = H; }
+const BPM = 120, GRID0 = 0, BEAT = 60 / BPM, E8 = BEAT / 2, E16 = BEAT / 4;
+const SAFE = { top: 240, bottom: 420, right: 140 };
+const HAND = '"SF Pro Display", system-ui, -apple-system, "Segoe UI", Arial, sans-serif';
+const CX = (W - SAFE.right) / 2;
+const onBeat = (t) => +(Math.round(t / E8) * E8).toFixed(4);
+// ---- the voice: VL(id) = { t0, t1 } of a line; VW(id, frac) a time inside it
+const VLINES = Object.fromEntries(VOICE.lines.map((l) => [l.id, l]));
+const VL = (id) => VLINES[id];
+const VW = (id, f) => { const l = VLINES[id]; return l.t0 + (l.t1 - l.t0) * f; };
+const DURATION = Math.ceil(VOICE.duration * 2) / 2;
+const NFRAMES = Math.round(DURATION * FPS);
+const LOOP_T = NFRAMES / FPS;
+// shot boundaries: a new section starts ~0.25s before its first line
+const S = (id) => onBeat(VL(id).t0 - 0.25);
+const SEC = {
+  globe: 0, open: 3.6, hook: S('hook'), ch1: onBeat(VL('hook').t1 + 1.2), loc: S('loc1'), terr: S('terr'), num: S('num1'), pop: S('num2'),
+  tl: onBeat(VL('num2').t1 + 0.6), pre: S('pre1'), his: S('his1'), tri: S('tri1'), quote: S('quote'), tri2: S('tri2'), rings: S('tri4'),
+  mod: S('mod1'), rel: S('rel1'), grid: onBeat(VL('rel1').t1 + 0.5), cul: S('cul1'),
+  mam: S('cul4'), split: onBeat(VL('cul4').t1 + 0.55), new3: S('new3'), end: S('end1'),
+};
+const HIT = onBeat(VL('new1').t0 - 0.35);   // the payoff: the district splits into five new communes (in the pause)
+// full-screen photo inserts and documents: [in, out]
+const PT = {
+  tri: [SEC.tri2, SEC.rings],
+  m64: [onBeat(VL('mod2').t0 - 0.2), onBeat(VW('mod2', 0.6))],
+  fest: [S('cul2'), onBeat(VW('cul2', 0.45))],
+  doccn: [onBeat(VW('cul2', 0.45)), S('cul3')],
+  ngu: [S('cul3'), onBeat(VW('cul3', 0.42))],
+  mam: [SEC.mam, onBeat(VW('cul4', 0.55))],
+  docmam: [onBeat(VW('cul4', 0.55)), SEC.split],
+};
+const ERA_LIST = [
+  [SEC.globe, SEC.open, () => sceneGlobe()],
+  [SEC.open, SEC.hook, () => sceneGeo('open')],
+  [SEC.hook, SEC.ch1, () => sceneHook()],
+  [SEC.ch1, SEC.loc, () => sceneChapter(1, 'ĐỊA LÍ', SEC.ch1)],
+  [SEC.loc, SEC.terr, () => sceneGeo('loc')],
+  [SEC.terr, SEC.num, () => sceneGeo('terr')],
+  [SEC.num, SEC.pop, () => sceneGeo('num')],
+  [SEC.pop, SEC.tl, () => scenePop()],
+  [SEC.tl, SEC.pre, () => sceneTimeline()],
+  [SEC.pre, SEC.his, () => sceneGeo('pre')],
+  [SEC.his, SEC.tri, () => sceneGeo('his')],
+  [SEC.tri, SEC.quote, () => sceneGeo('tri')],
+  [SEC.quote, SEC.tri2, () => sceneQuote()],
+  [PT.tri[0], PT.tri[1], () => scenePhoto('ph_tri', ...PT.tri)],
+  [SEC.rings, SEC.mod, () => sceneRings()],
+  [SEC.mod, PT.m64[0], () => sceneGeo('mod')],
+  [PT.m64[0], PT.m64[1], () => scenePhoto('ph_m64', ...PT.m64)],
+  [PT.m64[1], SEC.rel, () => sceneGeo('mod')],
+  [SEC.rel, SEC.grid, () => sceneGeo('rel')],
+  [SEC.grid, SEC.cul, () => sceneGrid()],
+  [SEC.cul, PT.fest[0], () => sceneGeo('cul')],
+  [PT.fest[0], PT.fest[1], () => scenePhoto('ph_fest', ...PT.fest)],
+  [PT.doccn[0], PT.doccn[1], () => sceneDoc('doc_caungu', PT.doccn[0], PT.doccn[0] + 0.8, { bg: 'fs_cau_ngu_ai.jpg', title: 'LỄ HỘI CẦU NGƯ', title2: 'DI SẢN PHI VẬT THỂ QUỐC GIA' })],
+  [PT.ngu[0], PT.ngu[1], () => scenePhoto('ph_ngu', ...PT.ngu)],
+  [PT.ngu[1], SEC.mam, () => sceneGeo('dens')],
+  [PT.mam[0], PT.mam[1], () => scenePhoto('ph_mam', ...PT.mam)],
+  [PT.docmam[0], PT.docmam[1], () => sceneDoc('doc_mamtom', PT.docmam[0], PT.docmam[0] + 0.5, { bg: 'fs_mam_tom_ai.jpg', title: 'MẮM TÔM HẬU LỘC', title2: 'CHỈ DẪN ĐỊA LÝ' })],
+  [SEC.split, SEC.new3, () => sceneGeo('split')],
+  [SEC.new3, SEC.end, () => sceneDoc('doc_nq1686', SEC.new3, VW('new3', 0.1), { title: 'NGHỊ QUYẾT 1686', title2: 'XÃ VẠN LỘC' })],
+  [SEC.end, DURATION, () => sceneGeo('end')],
+];
+const SHOT_TITLES = ['quả địa cầu', 'vào xứ Thanh', 'mở đầu: 150 km², 4.000 năm', 'PHẦN 1 · ĐỊA LÍ', 'vị trí (bản đồ nghiêng)', 'ba dáng đất, rừng ngập mặn', 'diện tích (khối 3D)', 'dân số',
+  'dòng thời gian', 'văn hóa Hoa Lộc', 'tên đất qua các triều', 'đền Bà Triệu', 'lời Bà Triệu', 'ảnh: di tích QG đặc biệt', '2 di sản (vòng đồng tâm)',
+  'Hòn Nẹ', 'ảnh: tàu Maddox 1964', 'trận phục kích', '51 di tích', 'lưới ảnh làng biển', 'Cầu Ngư trên bản đồ', 'ảnh: lễ hội (AI)', 'văn bản: Cầu Ngư 2017',
+  'ảnh: làng Ngư Lộc', 'mật độ (nhiệt kế)', 'ảnh: mắm tôm (AI)', 'văn bản: mắm tôm 2010', 'năm xã mới', 'văn bản: NQ 1686', 'kết'];
+const SHOTS = ERA_LIST.map(([t0, t1, f], i) => [(f.toString().match(/'(\w+)'/) || [0, 'shot' + i])[1], i, t0, t1, SHOT_TITLES[i]]);
+const TRANS = [[SEC.hook, 'flash'], [SEC.ch1, 'dip'], [SEC.loc, 'wipe'], [SEC.pop, 'wipe'], [SEC.tl, 'wipe'], [SEC.pre, 'wipe'],
+  [SEC.quote, 'dip'], [SEC.rings, 'blur'], [SEC.mod, 'wipe'], [SEC.grid, 'wipe'], [SEC.cul, 'wipe'], [PT.doccn[0], 'blur'],
+  [PT.docmam[0], 'blur'], [SEC.new3, 'blur'], [SEC.end, 'dip']];
+const TIMELINE = {
+  width: W, height: H, fps: FPS, bpm: BPM, gridOffset: GRID0, duration: DURATION, frames: NFRAMES, loop: LOOP_T, safe: SAFE, aspect: FORMAT,
+  format: 'journey',
+  shots: SHOTS.map(([key, era, t0, t1, title], i) => ({ id: i + 1, key, era, t0, t1, title })),
+  cuts: ERA_LIST.slice(1).map((e) => e[0]),
+  morphs: [],
+  cues: { hit: HIT },
+  acts: [
+    { name: '1 Địa lí', role: 'build', t0: 0, t1: SEC.tl },
+    { name: '2 Lịch sử', role: 'journey', t0: SEC.tl, t1: SEC.grid },
+    { name: '3 Văn hoá', role: 'peak', t0: SEC.grid, t1: VL('cul4').t1 + 0.05 },
+    { name: '4 Lặng', role: 'silence', t0: VL('cul4').t1 + 0.05, t1: HIT },
+    { name: '5 Năm xã mới', role: 'gift', t0: HIT, t1: SEC.end },
+    { name: '6 Kết', role: 'goodbye', t0: SEC.end, t1: DURATION },
+  ],
+  board: [
+    { t: 2.6, title: '1 Quả địa cầu', sound: 'vút', next: '' }, { t: VW('hook', 0.95), title: '2 150 km², 4.000 năm', sound: '', next: '' },
+    { t: VW('loc2', 0.9), title: '3 Vị trí', sound: '', next: '' }, { t: VW('mang', 0.95), title: '4 Rừng ngập mặn', sound: '', next: '' },
+    { t: VW('num2', 0.95), title: '5 Dân số', sound: '', next: '' }, { t: SEC.tl + 2.4, title: '6 Dòng thời gian', sound: '', next: '' },
+    { t: VW('pre2', 0.95), title: '7 Bát bồng', sound: '', next: '' }, { t: VW('quote', 0.95), title: '8 Lời Bà Triệu', sound: '', next: '' },
+    { t: VW('tri4', 0.95), title: '9 Hai di sản', sound: '', next: '' }, { t: VW('mod2', 0.4), title: '10 1964', sound: '', next: '' },
+    { t: VW('rel1', 0.95), title: '11 51 di tích', sound: '', next: '' }, { t: SEC.grid + 2.2, title: '12 Lưới ảnh', sound: '', next: '' },
+    { t: VW('cul2', 0.95), title: '13 Văn bản Cầu Ngư', sound: '', next: '' }, { t: VW('cul3', 0.98), title: '14 Mật độ', sound: '', next: '' },
+    { t: VW('cul4', 0.95), title: '15 Văn bản mắm tôm', sound: '', next: '' }, { t: VW('new2', 0.98), title: '16 Năm xã mới (biểu đồ tròn)', sound: 'CÚ NHẤN', next: '' },
+    { t: VW('new3', 0.95), title: '17 Nghị quyết 1686', sound: '', next: '' }, { t: DURATION - 0.6, title: '18 Kết', sound: '', next: '' },
+  ],
+  narration: VOICE.lines.map((l) => ({ t0: l.t0, t1: l.t1, text: l.text })),
+};
+window.TIMELINE = TIMELINE;

@@ -1,0 +1,8 @@
+{
+  "lead": 1.0,
+  "tail": 2.0,
+  "lines": [
+    { "id": "open", "text": "Câu mở đầu, số viết bằng chữ: một trăm bốn mươi ba ki lô mét vuông.", "file": "open.mp3", "after": 0.6 },
+    { "id": "l2", "text": "Câu thứ hai.", "file": "l2.mp3", "after": 0.6 }
+  ]
+}
